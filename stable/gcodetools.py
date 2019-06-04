@@ -162,10 +162,10 @@ styles = {
 				'main curve':	simplestyle.formatStyle({ 'stroke': '#88f', 'fill': 'none', 'stroke-width':'1', 'marker-end':'url(#Arrow2Mend)' }),
 			},
 		"biarc_style" : {
-				'biarc0':	simplestyle.formatStyle({ 'stroke': '#88f', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'1' }),
-				'biarc1':	simplestyle.formatStyle({ 'stroke': '#8f8', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'1' }),
-				'line':		simplestyle.formatStyle({ 'stroke': '#f88', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'1' }),
-				'area':		simplestyle.formatStyle({ 'stroke': '#777', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'0.1' }),
+				'biarc0':	simplestyle.formatStyle({ 'stroke': '#88f', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'0.5' }),
+				'biarc1':	simplestyle.formatStyle({ 'stroke': '#8f8', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'0.5' }),
+				'line':		simplestyle.formatStyle({ 'stroke': '#f8d', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'0.5' }),
+				'area':		simplestyle.formatStyle({ 'stroke': '#777', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'0.5' }),
 			},
 		"biarc_style_dark" : {
 				'biarc0':	simplestyle.formatStyle({ 'stroke': '#33a', 'fill': 'none', "marker-end":"url(#DrawCurveMarker)", 'stroke-width':'1' }),
@@ -231,14 +231,7 @@ def gcode_comment_str(s, replace_new_line = False):
 			res +=  "(" + re.sub(r"[\(\)\\\n\r]", ".", a) + ")\n"
 		else : 	
 			res +=  "\n"
-	return res
-	
-def gcode_comments(s):
-	res = ""
-	res = s.replace('(',';')
-	res = res.replace(')','')
-	res = res.replace('%','')
-	return res
+	return res	
 
 
 ################################################################################
@@ -1485,7 +1478,7 @@ def get_text(node) :
 
 
 
-def draw_text(text,x,y, group = None, style = None, font_size = 10, gcodetools_tag = None) :
+def draw_text(text,x,y, group = None, style = None, font_size = 10, gcodetools_tag = None, transform=None) :
 	if style == None : 
 		style = "font-family:DejaVu Sans;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:DejaVu Sans;fill:#000000;fill-opacity:1;stroke:none;"
 	style += "font-size:%fpx;"%font_size
@@ -1494,6 +1487,10 @@ def draw_text(text,x,y, group = None, style = None, font_size = 10, gcodetools_t
 							'y':	str(y),
 							'style' : style
 						}
+	
+	if transform != None:
+		attributes["transform"]=transform
+						
 	if gcodetools_tag!=None : 
 		attributes["gcodetools"] = str(gcodetools_tag)
  
@@ -1698,6 +1695,7 @@ class Arc():
 	
 
 	def draw(self, group, style, layer, transform, num = 0, reverse_angle = 1):
+
 		st = P(gcodetools.transform(self.st.to_list(), layer, True))
 		c = P(gcodetools.transform(self.c.to_list(), layer, True))
 		a = self.a * reverse_angle
@@ -1839,7 +1837,10 @@ class Biarc:
 		
 	def draw(self, layer, group=None, style=styles["biarc_style"]):
 		global gcodetools
+
 		gcodetools.set_markers()
+		
+
 
 		for i in [0,1]:
 			style['biarc%s_r'%i] = simplestyle.parseStyle(style['biarc%s'%i])
@@ -3249,7 +3250,7 @@ class Arangement_Genetic:
 
 class Gcodetools(inkex.Effect):
 
-	def export_gcode(self,gcode, no_headers = False,comments = '') :
+	def export_gcode(self,gcode, no_headers = False) :
 		if self.options.postprocessor != ""  or self.options.postprocessor_custom != "" :
 			postprocessor = Postprocessor(self.error)
 			postprocessor.gcode = gcode
@@ -3260,10 +3261,7 @@ class Gcodetools(inkex.Effect):
 
 		if not no_headers :
 			postprocessor.gcode = self.header + postprocessor.gcode + self.footer
-			
-		if comments == ';' :
-			postprocessor.gcode = gcode_comments(postprocessor.gcode)
-		
+
 		f = open(self.options.directory+self.options.file, "w")	
 		f.write(postprocessor.gcode)
 		f.close()							
@@ -3569,7 +3567,11 @@ class Gcodetools(inkex.Effect):
 		inkex.Effect.__init__(self)
 		self.OptionParser.add_option("-d", "--directory",					action="store", type="string", 		dest="directory", default="/home/",					help="Directory for gcode file")
 		self.OptionParser.add_option("-f", "--filename",					action="store", type="string", 		dest="file", default="-1.0",						help="File name")			
-		self.OptionParser.add_option("",   "--add-numeric-suffix-to-filename", action="store", type="inkbool",	dest="add_numeric_suffix_to_filename", default=True,help="Add numeric suffix to filename")			
+		self.OptionParser.add_option("",   "--add-max_dynamic-suffix-to-filename", action="store", type="inkbool",	dest="add_max_dyn_suffix_to_filename", default=False,help="Add numeric suffix to filename")
+		self.OptionParser.add_option("",   "--add-numeric-suffix-to-filename", action="store", type="inkbool",	dest="add_numeric_suffix_to_filename", default=True,help="Add numeric suffix to filename")
+		self.OptionParser.add_option("",   "--add-layer-suffix-to-filename", action="store", type="inkbool",	dest="add_layer_suffix_to_filename", default=True,	help="Add layer suffix to filename")
+		self.OptionParser.add_option("",   "--add-depth-function-suffix-to-filename", action="store", type="inkbool",	dest="add_depth_function_suffix_to_filename", default=True,	help="Add layer suffix to filename")
+		self.OptionParser.add_option("",   "--add-filename-prefix-to-filename", action="store", type="inkbool",	dest="add_filename_prefix_to_filename", default=False,	help="Add prefix to filename")
 		self.OptionParser.add_option("",   "--Zscale",						action="store", type="float", 		dest="Zscale", default="1.0",						help="Scale factor Z")				
 		self.OptionParser.add_option("",   "--Zoffset",						action="store", type="float", 		dest="Zoffset", default="0.0",						help="Offset along Z")
 		self.OptionParser.add_option("-s", "--Zsafe",						action="store", type="float", 		dest="Zsafe", default="0.5",						help="Z above all obstacles")
@@ -3581,11 +3583,12 @@ class Gcodetools(inkex.Effect):
 		self.OptionParser.add_option("",   "--biarc-tolerance",				action="store", type="float", 		dest="biarc_tolerance", default="1",				help="Tolerance used when calculating biarc interpolation.")				
 		self.OptionParser.add_option("",   "--biarc-max-split-depth",		action="store", type="int", 		dest="biarc_max_split_depth", default="4",			help="Defines maximum depth of splitting while approximating using biarcs.")				
 		self.OptionParser.add_option("",   "--path-to-gcode-order",			action="store", type="string", 		dest="path_to_gcode_order", default="path by path",	help="Defines cutting order path by path or layer by layer.")				
-		self.OptionParser.add_option("",   "--path-to-gcode-depth-function",action="store", type="string", 		dest="path_to_gcode_depth_function", default="zd",	help="Path to gcode depth function.")				
-		self.OptionParser.add_option("",   "--path-to-gcode-sort-paths",	action="store", type="inkbool",		dest="path_to_gcode_sort_paths", default=True,		help="Sort paths to reduse rapid distance.")		
+		self.OptionParser.add_option("",   "--path-to-gcode-depth-function",action="store", type="string", 		dest="path_to_gcode_depth_function", default="zd",	help="Path to gcode depth function.")			
+		self.OptionParser.add_option("",   "--path-to-gcode-depth-gravure",	action="store", type="inkbool",		dest="path_to_gcode_depth_gravure", default=False,		help="Apply a coefficient on depth function if layer name is 'gravure'")			
+		self.OptionParser.add_option("",   "--path-to-gcode-sort-paths",	action="store", type="inkbool",		dest="path_to_gcode_sort_paths", default=True,		help="Sort paths to reduse rapid distance.")	
+		self.OptionParser.add_option("",   "--path-to-gcode-sort-paths-area",	action="store", type="inkbool",		dest="path_to_gcode_sort_paths_area", default=False,		help="Sort paths to reduse rapid distance. & cut larger at the end")				
 		self.OptionParser.add_option("",   "--comment-gcode",				action="store", type="string", 		dest="comment_gcode", default="",					help="Comment Gcode")				
 		self.OptionParser.add_option("",   "--comment-gcode-from-properties",action="store", type="inkbool", 	dest="comment_gcode_from_properties", default=False,help="Get additional comments from Object Properties")				
-		self.OptionParser.add_option("",   "--comments",					action="store", type="string",	 	dest="comments", default="",						help="Select comments type")				
 
 
 
@@ -3684,10 +3687,9 @@ class Gcodetools(inkex.Effect):
 					"gcode before path":"",
 					"gcode after path":"",
 					"sog":"",
-					"spindle rpm":"",
+					"spinlde rpm":"",
 					"CW or CCW":"",
 					"tool change gcode":" ",
-					"comments":"",
 					"4th axis meaning": " ",
 					"4th axis scale": 1.,
 					"4th axis offset": 0.,
@@ -3712,8 +3714,7 @@ class Gcodetools(inkex.Effect):
 					"spinlde rpm",
 					"CW or CCW",
 					"tool change gcode",
-					"comments",
-				]
+				]		
 
 
 	def parse_curve(self, p, layer, w = None, f = None):
@@ -3752,6 +3753,7 @@ class Gcodetools(inkex.Effect):
 ################################################################################
 
 	def draw_csp(self, csp, layer=None, group=None, fill='none', stroke='#178ade', width=0.354, style=None):
+
 		if layer!=None :
 			csp = self.transform_csp(csp,layer,reverse=True)
 		if group==None and layer==None:
@@ -3767,8 +3769,9 @@ class Gcodetools(inkex.Effect):
 
 
 
-	def draw_curve(self, curve, layer, group=None, style=styles["biarc_style"]):
+	def draw_curve(self, curve, layer, group=None, style=styles["biarc_style"],index=-1):
 		self.set_markers()
+
 
 		for i in [0,1]:
 			style['biarc%s_r'%i] = simplestyle.parseStyle(style['biarc%s'%i])
@@ -3778,12 +3781,15 @@ class Gcodetools(inkex.Effect):
 		
 		if group==None:
 			if "preview_groups" not in dir(self) :
-				self.preview_groups = { layer: inkex.etree.SubElement( self.layers[min(1,len(self.layers)-1)], inkex.addNS('g','svg'), {"gcodetools": "Preview group"} ) }
+				self.preview_groups = { layer: inkex.etree.SubElement( self.current_layer, inkex.addNS('g','svg'), {"gcodetools": "Preview group"} ) }
 			elif layer not in self.preview_groups :
-				self.preview_groups[layer] = inkex.etree.SubElement( self.layers[min(1,len(self.layers)-1)], inkex.addNS('g','svg'), {"gcodetools": "Preview group"} )
+				self.preview_groups[layer] = inkex.etree.SubElement( self.current_layer, inkex.addNS('g','svg'), {"gcodetools": "Preview group"} )
 			group = self.preview_groups[layer]
 
 		s, arcn = '', 0
+		first_curve=True
+		
+
 		
 		transform = self.get_transforms(group)
 		if transform != [] : 
@@ -3799,12 +3805,15 @@ class Gcodetools(inkex.Effect):
 			si = sk[:]
 			si[0], si[2] = self.transform(si[0], layer, True), (self.transform(si[2], layer, True) if type(si[2])==type([]) and len(si[2])==2 else si[2])
 			
-			if s!='':
+			if s!='' and s[1] in ('line','arc'):
 				if s[1] == 'line':
 					attr = {	'style': style['line'],
 								'd':'M %s,%s L %s,%s' % (s[0][0], s[0][1], si[0][0], si[0][1]),
 								"gcodetools": "Preview",
 							}
+					#self.error(attr['style'],"error")
+					if first_curve:
+						attr['style'] = attr['style']+";stroke:#f33"
 					if transform != [] :
 						attr["transform"] = transform		
 					inkex.etree.SubElement(	group, inkex.addNS('path','svg'),  attr	)
@@ -3845,7 +3854,16 @@ class Gcodetools(inkex.Effect):
 					if transform != [] :
 						attr["transform"] = transform	
 					inkex.etree.SubElement(	group, inkex.addNS('path','svg'), attr)
+				if first_curve and index > 0:
+					#self.error(s,"error")
+					if transform != []:
+						textTransform=transform
+					else:
+						textTransform=None
+					draw_text(str(index),s[0][0],s[0][1], group=group, font_size = 4, gcodetools_tag = "Preview",transform=textTransform)
+					first_curve = False
 			s = si
+
 	
 
 	def check_dir(self):
@@ -3869,14 +3887,33 @@ class Gcodetools(inkex.Effect):
 			else:
 				self.footer = defaults['footer']
 			self.header += self.options.unit + "\n" 
-			
 		else: 
 			self.error(_("Directory does not exist! Please specify existing directory at Preferences tab!"),"error")
 			return False
+		
+		if self.options.add_filename_prefix_to_filename :
+			filename=''
+			input_file=sys.argv[-1]
+			in_file=open(input_file,'r')
+			for line in in_file.readlines():
+				if 'docname' in line:
+					filename = line.split('"')[1].replace('.svg','').strip()
+					break
+			in_file.close()
+			self.options.file=filename
+		
+		if self.options.add_layer_suffix_to_filename :
+			self.options.file=self.options.file+'_'+self.current_layer.get('{http://www.inkscape.org/namespaces/inkscape}label')
+
+		if self.options.add_depth_function_suffix_to_filename :
+			self.options.file=self.options.file+'_'+self.options.path_to_gcode_depth_function.strip('"').replace('*','x')
+		
+		if self.options.add_max_dyn_suffix_to_filename :
+			self.options.file=self.options.file+'_'+self.maxX+'x'+self.maxY
 
 		if self.options.add_numeric_suffix_to_filename :
 			dir_list = os.listdir(self.options.directory)
-			if "." in self.options.file : 
+			if "." in self.options.file and False : # disactivating 
 				r = re.match(r"^(.*)(\..*)$",self.options.file)
 				ext = r.group(2)
 				name = r.group(1)
@@ -3915,7 +3952,7 @@ class Gcodetools(inkex.Effect):
 ###		Curve definition [start point, type = {'arc','line','move','end'}, arc center, arc angle, end point, [zstart, zend]]		
 ###
 ################################################################################
-	def generate_gcode(self, curve, layer, depth):
+	def generate_gcode(self, curve, layer, depth, reverse=False):
 		Zauto_scale = self.Zauto_scale[layer]
 		tool = self.tools[layer][0]
 		g = ""
@@ -3952,6 +3989,27 @@ class Gcodetools(inkex.Effect):
 		current_a = 0
 		go_to_safe_distance = "G00" + c([None,None,zs]) + "\n" 
 		penetration_feed = " F%s"%tool['penetration feed'] 
+		
+		if(reverse):
+			#self.error(curve,"warning")
+			# have to replace "move" by "end"
+			if curve[0][1] != 'end':
+				curve[0][1]='end'
+				curve[-1][1]='move'
+			#reverse the list if attribute reverse
+			curve.reverse()
+			for i in range(len(curve)):
+				if curve[i][1]=='line':
+					end=curve[i][4]
+					curve[i][4]=curve[i][0]
+					curve[i][0]=end
+				if curve[i][1]=='arc':
+					end=curve[i][4]
+					curve[i][4]=curve[i][0]
+					curve[i][0]=end
+					curve[i][3]=-curve[i][3]
+			#self.error(curve,"error")
+		
 		for i in range(1,len(curve)):
 		#	Creating Gcode for curve between s=curve[i-1] and si=curve[i] start at s[0] end at s[4]=si[0]
 			s, si = curve[i-1], curve[i]
@@ -3968,7 +4026,7 @@ class Gcodetools(inkex.Effect):
 					a = calculate_angle(a, current_a)
 					g+="G01 A%s\n" % (a*tool['4th axis scale']+tool['4th axis offset'])
 					current_a = a
-				if lg=="G00": g += "G01" + c([None,None,s[5][0]+depth]) + penetration_feed +" (Penetrate)\n"	
+				if lg=="G00": g += "G01" + c([None,None,s[5][0]+depth]) + penetration_feed +"(Penetrate)\n"	
 				g += "G01" +c(si[0]+[s[5][1]+depth]) + feed + "\n"
 				lg = 'G01'
 			elif s[1] == 'arc':
@@ -3984,7 +4042,7 @@ class Gcodetools(inkex.Effect):
 					axis4 = " A%s"%((current_a+s[3])*tool['4th axis scale']+tool['4th axis offset'])
 					current_a = current_a+s[3]
 				else : axis4 = ""
-				if lg=="G00": g += "G01" + c([None,None,s[5][0]+depth]) + penetration_feed + " (Penetrate)\n"				
+				if lg=="G00": g += "G01" + c([None,None,s[5][0]+depth]) + penetration_feed + "(Penetrate)\n"				
 				if (r[0]**2 + r[1]**2)>self.options.min_arc_radius**2:
 					r1, r2 = (P(s[0])-P(s[2])), (P(si[0])-P(s[2]))
 					if abs(r1.mag()-r2.mag()) < 0.001 :
@@ -4490,27 +4548,67 @@ class Gcodetools(inkex.Effect):
 					minimal_way_type=w
 			
 			return minimal_way
+			
+		def max_dim(axis, curves):
+			if axis == 'x':
+				ind=0
+			else:
+				ind=1
+			
+			max=0;
+			lines = []
+			
+			for curve in curves:
+				for point in curve[0]:
+
+					lines += point[0]
+				
+
+				
+			for iter in range(len(lines)/2):
+				if lines[iter*2+ind] > max:
+					max=lines[iter*2+ind]
+				
+			return str(format(max, '.0f'))
 
 		def sort_lines(lines):
 			if len(lines) == 0 : return []
 			lines = [ [key]+lines[key] for key in range(len(lines))]			
-			keys = [0]
+			keys = [(0,0)]
 			end_point = lines[0][3:]
 			print_("!!!",lines,"\n",end_point)
 			del lines[0]
 			while len(lines)>0:
 				dist = [ [point_to_point_d2(end_point,lines[i][1:3]),i] for i in range(len(lines))]
+				dist_rev = [ [point_to_point_d2(end_point,lines[i][3:5]),i] for i in range(len(lines))]
+
 				i = min(dist)[1]
-				keys.append(lines[i][0])
-				end_point = lines[i][3:]
-				del lines[i]
+				i_rev = min(dist_rev)[1]
+				#self.error((lines[i][1:3],lines[i][3:4], dist,dist_rev),"error")
+
+				if (dist[i]<=dist_rev[i_rev]):
+					keys.append((lines[i][0],False))
+					end_point = lines[i][3:]
+					del lines[i]
+				else:
+					keys.append((lines[i_rev][0],True))
+					end_point = lines[i_rev][1:3]
+					del lines[i_rev]
+					#self.error("rev choosen","error")
+				#self.error(end_point,"warning")
+			#self.error("end","error")
 			return keys
 			
-		def sort_curves(curves):
+		def sort_curves(curves, area_order=False):
 			lines = []
-			for curve in curves:
-				lines += [curve[0][0][0] + curve[-1][-1][0]]
-			return sort_lines(lines)
+			
+			if area_order == False:
+				for curve in curves:
+					lines += [curve[0][0][0] + curve[-1][-1][0]]
+				return sort_lines(lines)
+			else:
+				#TODO
+				return [0]
 		
 		def print_dxfpoints(points):
 			gcode=""
@@ -4536,7 +4634,7 @@ class Gcodetools(inkex.Effect):
 			self.error(_("No paths are selected! Trying to work on all available paths."),"warning")
 		else :
 			paths = self.selected_paths
-		self.check_dir() 
+
 		gcode = ""
 		
 		biarc_group = inkex.etree.SubElement( self.selected_paths.keys()[0] if len(self.selected_paths.keys())>0 else self.layers[0], inkex.addNS('g','svg') )
@@ -4544,6 +4642,7 @@ class Gcodetools(inkex.Effect):
 		print_(("paths=",paths))
 		colors = {}
 		for layer in self.layers :
+
 			if layer in paths :
 				print_(("layer",layer))
 				# transform simple path to get all var about orientation
@@ -4552,9 +4651,14 @@ class Gcodetools(inkex.Effect):
 				self.set_tool(layer)
 				curves = []
 				dxfpoints = []
+				
+				value_of_depth_parameter=self.options.path_to_gcode_depth_function
+				
+				if self.options.path_to_gcode_depth_gravure and self.current_layer.get('{http://www.inkscape.org/namespaces/inkscape}label') == 'gravure':
+					value_of_depth_parameter=value_of_depth_parameter+"/2.0"
 
 				try :
-					depth_func = eval('lambda c,d,s: ' + self.options.path_to_gcode_depth_function.strip('"'))				
+					depth_func = eval('lambda c,d,s: ' + value_of_depth_parameter.strip('"'))				
 				except:
 					self.error("Bad depth function! Enter correct function at Path to Gcode tab!") 
 
@@ -4604,11 +4708,7 @@ class Gcodetools(inkex.Effect):
 #					print_(c)
 				dxfpoints=sort_dxfpoints(dxfpoints)
 				gcode+=print_dxfpoints(dxfpoints)
-				
-				
-				for curve in curves :
-					for subcurve in curve[1] :
-						self.draw_curve(subcurve, layer)
+
 					
 				if self.options.path_to_gcode_order == 'subpath by subpath':
 					curves_ = []
@@ -4620,22 +4720,35 @@ class Gcodetools(inkex.Effect):
 					
 				if self.options.path_to_gcode_order == 'path by path':
 					if self.options.path_to_gcode_sort_paths :
-						keys = sort_curves( [curve[1] for curve in curves] )
+						keys = sort_curves( [curve[1] for curve in curves],self.options.path_to_gcode_sort_paths_area )
 					else :
 						keys = range(len(curves))
+						
+					if self.options.add_max_dyn_suffix_to_filename:
+							self.maxX=max_dim('x', [curve[1] for curve in curves_])
+							self.maxY=max_dim('y', [curve[1] for curve in curves_])
+					else:
+							self.maxX=''
+							self.maxY=''
+							
 					for key in keys:
-						d = curves[key][0][1]
+						rang=key[0]
+						reverse=key[1]
+					
+					
+						d = curves[rang][0][1]
 						for step in range( 0,  int(math.ceil( abs((zs-d)/self.tools[layer][0]["depth step"] )) ) ):
 							z = max(d, zs - abs(self.tools[layer][0]["depth step"]*(step+1)))
 							
-							gcode += gcode_comment_str("\nStart cutting path id: %s"%curves[key][0][0])
-							if curves[key][0][2] != "()" :
-								gcode += curves[key][0][2] # add comment
+							gcode += gcode_comment_str("\nStart cutting path id: %s"%curves[rang][0][0])
+							if curves[rang][0][2] != "()" :
+								gcode += curves[rang][0][2] # add comment
 								
-							for curve in curves[key][1]:
-								gcode += self.generate_gcode(curve, layer, z)
+							for curve in curves[rang][1]:
+								self.error("rev",reverse,curve,"error")
+								gcode += self.generate_gcode(curve, layer, z, reverse)
 								
-							gcode += gcode_comment_str("End cutting path id: %s\n\n"%curves[key][0][0])
+							gcode += gcode_comment_str("End cutting path id: %s\n\n"%curves[rang][0][0])
 							
 				else:	# pass by pass
 					mind = min( [curve[0][1] for curve in curves] )	
@@ -4650,21 +4763,45 @@ class Gcodetools(inkex.Effect):
 						gcode += "\n(Pass at depth %s)\n"%z
 
 						if self.options.path_to_gcode_sort_paths :
-							keys = sort_curves( [curve[1] for curve in curves_] )		
+							keys = sort_curves( [curve[1] for curve in curves_] ,self.options.path_to_gcode_sort_paths_area)		
 						else :
 							keys = range(len(curves_))
+							
+						if self.options.add_max_dyn_suffix_to_filename:
+							self.maxX=max_dim('x', [curve[1] for curve in curves_])
+							self.maxY=max_dim('y', [curve[1] for curve in curves_])
+						else:
+							self.maxX=''
+							self.maxY=''
+							
 						for key in keys:
-				
-							gcode += gcode_comment_str("Start cutting path id: %s"%curves[key][0][0])
-							if curves[key][0][2] != "()" :
-								gcode += curves[key][0][2] # add comment
+							rang=key[0]
+							reverse=key[1]
 
-							for subcurve in curves_[key][1]:
-								gcode += self.generate_gcode(subcurve, layer, max(z,curves_[key][0][1]))
 				
-							gcode += gcode_comment_str("End cutting path id: %s\n\n"%curves[key][0][0])
+							gcode += gcode_comment_str("Start cutting path id: %s"%curves[rang][0][0])
+							if curves[rang][0][2] != "()" :
+								gcode += curves[rang][0][2] # add comment
 
-		self.export_gcode(gcode,comments=self.tools[layer][0]["comments"])
+							for subcurve in curves_[rang][1]:
+								gcode += self.generate_gcode(subcurve, layer, max(z,curves_[rang][0][1]),reverse)
+				
+							gcode += gcode_comment_str("End cutting path id: %s\n\n"%curves[rang][0][0])
+
+							
+							
+				
+				index=1
+				for curve in curves :
+					for subcurve in curve[1] :						
+						#self.draw_curve(subcurve, self.layers[0])
+
+						self.draw_curve(subcurve, layer,index=index)
+						index = index +1
+							
+							
+		self.check_dir() 
+		self.export_gcode(gcode)
 	
 ################################################################################
 ###
@@ -5809,7 +5946,7 @@ class Gcodetools(inkex.Effect):
 			self.header+="(Depth, as a function of radius w, must be "+ self.tools[layer][0]['shape']+ ")\n"
 			self.header+="(Rapid feeds use safe Z="+ str(self.options.Zsafe) + unit + ")\n"
 			self.header+="(Material surface at Z="+ str(self.options.Zsurface) + unit + ")\n"
-			self.export_gcode(gcode,comments=self.tools[layer][0]["comments"])
+			self.export_gcode(gcode)
 		else : 	self.error(_("No need to engrave sharp angles."),"warning")
 
 
@@ -5910,19 +6047,7 @@ class Gcodetools(inkex.Effect):
 					"feed":"400",
 					"penetration feed":"100",
 					"depth step":"1",
-					"tool change gcode":" ",
-					"comments":" "
-			}
-		elif self.options.tools_library_type == "plotter" :
-			tool = {
-					"name": "Plotter",
-					"id": "Plotter 0001",
-					"diameter":0.4,
-					"feed":"1000",
-					"penetration feed":"1500",
-					"depth step":"1",
-					"tool change gcode":" ",
-					"comments":" "
+					"tool change gcode":" "
 			}
 		elif self.options.tools_library_type == "lathe cutter" :
 			tool = {
@@ -5935,8 +6060,7 @@ class Gcodetools(inkex.Effect):
 					"fine feed":"100",
 					"penetration feed":"100",
 					"depth step":"1",
-					"tool change gcode":" ",
-					"comments":" "
+					"tool change gcode":" "
 			}
 		elif self.options.tools_library_type == "cone cutter":	
 			tool = {
@@ -5947,8 +6071,7 @@ class Gcodetools(inkex.Effect):
 					"feed":"400",
 					"penetration feed":"100",
 					"depth step":"1",
-					"tool change gcode":" ",
-					"comments":" "
+					"tool change gcode":" "
 			}
 		elif self.options.tools_library_type == "tangent knife":	
 			tool = {
@@ -5960,8 +6083,7 @@ class Gcodetools(inkex.Effect):
 					"4th axis meaning": "tangent knife",
 					"4th axis scale": 1.,
 					"4th axis offset": 0,
-					"tool change gcode":" ",
-					"comments":" "
+					"tool change gcode":" "
 			}
 			
 		elif self.options.tools_library_type == "plasma cutter":	
@@ -5978,7 +6100,6 @@ M03 (turn on plasma)
 G04 P0.2 (pause)
 G01 Z1 (going to cutting z)\n""",
 				"gcode after path":"M05 (turn off plasma)\n",
-				"comments":" "
 			}
 		elif self.options.tools_library_type == "graffiti":	
 			tool = {
@@ -5990,7 +6111,7 @@ G01 Z1 (going to cutting z)\n""",
 				"gcode before path":"""M03 S1(Turn spray on)\n """,
 				"gcode after path":"M05 (Turn spray off)\n ",
 				"tool change gcode":"(Add G00 here to change sprayer if needed)\n",
-				"comments":" "
+				
 			}
 
 		else :
@@ -6242,7 +6363,7 @@ G01 Z1 (going to cutting z)\n""",
 							gcode += ("G01 %s %f F %f \n" % (z, top_start[1], self.tool["passing feed"]) )
 							gcode += ("G01 %s %f %s %f F %f \n" % (x, top_start[0], z, top_start[1], self.tool["passing feed"]) )
 	
-		self.export_gcode(gcode,comments=self.tools[layer][0]["comments"])
+		self.export_gcode(gcode)
 		
 ################################################################################
 ###
@@ -6627,7 +6748,7 @@ G01 Z1 (going to cutting z)\n""",
 					if polyline_[0] == "draw" and last_state!="draw" :
 						gcode += self.tool['gcode after path']+"\n"
 					last_state = polyline_[0]
-		self.export_gcode(gcode, no_headers=True, comments=self.tools[layer][0]["comments"])				
+		self.export_gcode(gcode, no_headers=True)				
 		if self.options.graffiti_create_preview :
 			try :
 				# Draw reference points			
@@ -6683,9 +6804,12 @@ G01 Z1 (going to cutting z)\n""",
 		elif self.options.active_tab ==  '"test"' :
 			self.test()
 			
-		elif self.options.active_tab not in ['"dxfpoints"','"path-to-gcode"', '"area_fill"', '"area"', '"area_artefacts"', '"engraving"', '"orientation"', '"tools_library"', '"lathe"', '"offset"', '"arrangement"', '"update"', '"graffiti"', '"lathe_modify_path"', '"plasma-prepare-path"']:
-			self.error(_("Select one of the action tabs - Path to Gcode, Area, Engraving, DXF points, Orientation, Offset, Lathe or Tools library.\n Current active tab id is %s" % self.options.active_tab),"error")
+		
 		else:
+			if self.options.active_tab not in ['"dxfpoints"','"path-to-gcode"', '"area_fill"', '"area"', '"area_artefacts"', '"engraving"', '"orientation"', '"tools_library"', '"lathe"', '"offset"', '"arrangement"', '"update"', '"graffiti"', '"lathe_modify_path"', '"plasma-prepare-path"']:
+				#self.error(_("Select one of the action tabs - Path to Gcode, Area, Engraving, DXF points, Orientation, Offset, Lathe or Tools library.\n Current active tab id is %s" % self.options.active_tab),"error")
+				#set path to gcode by default
+				self.options.active_tab='"path-to-gcode"'
 			# Get all Gcodetools data from the scene.
 			self.get_info()
 			if self.options.active_tab in ['"dxfpoints"','"path-to-gcode"', '"area_fill"', '"area"', '"area_artefacts"', '"engraving"', '"lathe"', '"graffiti"', '"plasma-prepare-path"']:
@@ -6775,5 +6899,5 @@ G01 Z1 (going to cutting z)\n""",
 		
 #						
 gcodetools = Gcodetools()
-gcodetools.affect()					
+gcodetools.affect()
 

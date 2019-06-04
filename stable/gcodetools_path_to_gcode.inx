@@ -17,7 +17,9 @@
 				</param>
 				
 				<param name="path-to-gcode-depth-function" type="string" _gui-text="Depth function:">d</param>			
-				<param name="path-to-gcode-sort-paths" type="boolean" _gui-text="Sort paths to reduse rapid distance">True</param>			
+				<param name="path-to-gcode-depth-gravure" type="boolean" _gui-text="Apply a coefficient on depth function if layer name is 'gravure'">False</param>	
+				<param name="path-to-gcode-sort-paths" type="boolean" _gui-text="Sort paths to reduse rapid distance">True</param>	
+				<param name="path-to-gcode-sort-paths-area" type="boolean" _gui-text="Sort paths by area">True</param>				
 				
 				<_param name="help" type="description">
 Biarc interpolation tolerance is the maximum distance between path and its approximation.
@@ -38,8 +40,12 @@ For depth function c=color intensity from 0.0 (white) to 1.0 (black), d is the d
 
 		<page name='preferences' _gui-text='Preferences'>
 			<param name="filename" type="string" _gui-text="File:">output.ngc</param>
+			<param name="add-filename-prefix-to-filename" type="boolean" _gui-text="Add the current inkscape filename to filename and ignore upper parameter">False</param>
+			<param name="add-depth-function-suffix-to-filename" type="boolean" _gui-text="Add the depth function suffix to filename">False</param>
+			<param name="add-max_dynamic-suffix-to-filename" type="boolean" _gui-text="Add the dynamic range suffix to filename">true</param>
 			<param name="add-numeric-suffix-to-filename" type="boolean" _gui-text="Add numeric suffix to filename">true</param>
-			
+			<param name="add-layer-suffix-to-filename" type="boolean" _gui-text="Add layer suffix to filename">true</param>
+
 			<param name="directory" type="string" _gui-text="Directory:">/home</param>
 
 			<param name="Zsafe" type="float" precision="5" min="-1000" max="1000" _gui-text="Z safe height for G00 move over blank:">5</param>
@@ -82,7 +88,7 @@ Gcodetools ver. 1.7
 		</page>
 
 	</param>	
-    <effect>
+    <effect needs-live-preview="false">
 		<effects-menu>
 			<submenu _name="Gcodetools"/>
 		</effects-menu>
