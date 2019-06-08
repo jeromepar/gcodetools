@@ -17,9 +17,9 @@
 				</param>
 				
 				<param name="path-to-gcode-depth-function" type="string" _gui-text="Depth function:">d</param>			
-				<param name="path-to-gcode-depth-gravure" type="boolean" _gui-text="Apply a coefficient on depth function if layer name is 'gravure'">False</param>	
+				<param name="path-to-gcode-depth-gravure" type="boolean" _gui-text="Apply a coefficient 1/2 on depth function if layer name is 'gravure'">False</param>	
 				<param name="path-to-gcode-sort-paths" type="boolean" _gui-text="Sort paths to reduse rapid distance">True</param>	
-				<param name="path-to-gcode-sort-paths-area" type="boolean" _gui-text="Sort paths by area">True</param>				
+				<param name="path-to-gcode-use-descriptor-last" type="boolean" _gui-text="Set path with the attribute 'last' at the end">True</param>				
 				
 				<_param name="help" type="description">
 Biarc interpolation tolerance is the maximum distance between path and its approximation.
